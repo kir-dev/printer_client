@@ -34,12 +34,32 @@ UserDataUpdated_Args, EVT_USER_DATA_UPDATED = wx.lib.newevent.NewEvent()
 TIMER_INTERVAL = 5 * 60 * 1000 # in millisecs
 TIMER_ERROR_INTERVAL = 15 * 1000
 
-app = wx.App(redirect=False)
+def stderrwrite(str):
+    sys.stderr.write(str + '\n')
+    sys.stderr.flush()
+    os.fsync(sys.stderr.fileno())
+
+
+class PrinterApp(wx.App):
+    def __init__(self):
+        wx.App.__init__(self, redirect=False)
+        self.Bind(wx.EVT_END_SESSION, lambda e: self.OnExit())
+
+    def OnInit(self):
+        stderrwrite("OnInit")
+        return True
+
+    def OnExit(self):
+        stderrwrite("OnExit")
+        Cleanup()
 
 # Redirect stderr to error.log
 stderr_original = sys.stderr
 sys.stderr = open(platformspec.errorfilename, "w")
 excepthook_original = sys.excepthook
+
+app = PrinterApp()
+
 def loggingexcepthook(exctype, value, traceback):
     """Closes the custom error stream if an unhandled exception occurs"""
     excepthook_original(exctype, value, traceback)
@@ -51,7 +71,7 @@ sys.excepthook = loggingexcepthook
 class StderrLogger(wx.PyLog):
     """Logs wx messages to the error stream defined by sys.stderr"""
     def DoLogString(self, message, timestamp):
-        sys.stderr.write(message + '\n')
+        stderrwrite(message)
 
 wx.Log.SetActiveTarget(StderrLogger())
 
@@ -311,6 +331,7 @@ class StatusWindow(wx.Frame):
         # Event bindings
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.Bind(EVT_USER_DATA_UPDATED, self.OnUserDataUpdate)
+        self.Bind(EVT_USER_DATA_UPDATED, self.OnUserDataLogErrors)
 
         self.taskicon.Bind(wx.EVT_MENU, lambda e: self.Close(True), id=ID_EXIT)
         self.taskicon.Bind(wx.EVT_MENU, self.OnPrinter)
@@ -397,6 +418,14 @@ class StatusWindow(wx.Frame):
         self.printerPanel.OnUserDataUpdate(e)
         self.sizer.Layout()
         e.Skip()
+
+    def OnUserDataLogErrors(self, e):
+        with userDataLock:
+            global userData
+            if userData.error != None:
+                stderrwrite(str(userData.error))
+        e.Skip()
+
 
     def UserDataUpdated(self):
         """Fires the UserDataUpdated event on the main window"""
@@ -504,24 +533,28 @@ except NameError:
     else:
         userconfig_appKey = result.text
 
-frame = StatusWindow()
-app.SetTopWindow(frame)
-app.MainLoop()
+def Cleanup():
+    """Saves the user's configuration and makes the user go offline."""
+    with open(platformspec.configfilename, "w") as f:
+        f.write("userconfig_appKey = " + repr(userconfig_appKey) + "\n")
+        if userData.status == True:
+            sStatus = "on"
+        else:
+            sStatus = "off"
+        f.write("userconfig_userStatus = " + repr(sStatus) + "\n")
+        d = {}
+        for printer in userData.GetPrinters():
+            d[printer.id] = printer.status
+        f.write("userconfig_printerStatus = " + repr(d) + "\n")
 
-# Save settings
+    # Make user offline
 
-with open(platformspec.configfilename, "w") as f:
-    f.write("userconfig_appKey = " + repr(userconfig_appKey) + "\n")
-    if userData.status == True:
-        sStatus = "on"
-    else:
-        sStatus = "off"
-    f.write("userconfig_userStatus = " + repr(sStatus) + "\n")
-    d = {}
-    for printer in userData.GetPrinters():
-        d[printer.id] = printer.status
-    f.write("userconfig_printerStatus = " + repr(d) + "\n")
+    UserOffline_Blocking(userconfig_appKey, config.connectionURL, config.version, None)
 
-# Make user offline
 
-UserOffline_Blocking(userconfig_appKey, config.connectionURL, config.version, None)
+try:
+    frame = StatusWindow()
+    app.SetTopWindow(frame)
+    app.MainLoop()
+except Exception as ex:
+    stderrwrite(str(ex))
