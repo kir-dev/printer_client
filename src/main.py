@@ -33,6 +33,7 @@ UserDataUpdated_Args, EVT_USER_DATA_UPDATED = wx.lib.newevent.NewEvent()
 
 TIMER_INTERVAL = 5 * 60 * 1000 # in millisecs
 TIMER_ERROR_INTERVAL = 15 * 1000
+TIMER_ERROR_INTERVAL_MAX = 10 * 60 * 1000
 
 def stderrwrite(str):
     sys.stderr.write(str + '\n')
@@ -46,11 +47,9 @@ class PrinterApp(wx.App):
         self.Bind(wx.EVT_END_SESSION, lambda e: self.OnExit())
 
     def OnInit(self):
-        stderrwrite("OnInit")
         return True
 
     def OnExit(self):
-        stderrwrite("OnExit")
         Cleanup()
 
 # Redirect stderr to error.log
@@ -411,7 +410,7 @@ class StatusWindow(wx.Frame):
                                "A hiba szövege: " + unicode (userData.error) + "\n" + \
                                "Újrapróbálkozásig hátravan: " + unicode(self.nextErrorTicks) + " ms"
                     self.timer.Start(self.nextErrorTicks, oneShot=True)
-                    self.nextErrorTicks = self.nextErrorTicks * 2
+                    self.nextErrorTicks = min(self.nextErrorTicks * 2, TIMER_ERROR_INTERVAL_MAX)
 
                 self.statusText.SetLabel(errorMsg)
 
