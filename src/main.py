@@ -28,6 +28,7 @@ ID_APPKEY = 4
 ID_AUTOSTART = 5
 ID_PROFILELINK = 6
 ID_TIMER = 7
+ID_REFRESH = 8
 ID_PRINTER = 100
 UserDataUpdated_Args, EVT_USER_DATA_UPDATED = wx.lib.newevent.NewEvent()
 
@@ -84,7 +85,7 @@ def ChangeAppKey(frame, callback):
                                         "Új AppKey", userconfig_appKey)
     if result.accepted:
         userconfig_appKey = result.text
-        RefreshUserData(userconfig_appKey, config.connectionURL, config.version, callback)
+        RefreshUserDataDefault(callback)
 
 def AskForUpdate(frame):
     """Asks if the user wants to download the updated version
@@ -99,6 +100,15 @@ def AskForUpdate(frame):
 
     if result.accepted:
         webbrowser.open_new_tab(config.profileLink)
+
+def UserOnlineDefault(callback):
+    UserOnline(userconfig_appKey, config.connectionURL, config.version, callback)
+
+def UserOfflineDefault(callback):
+    UserOffline(userconfig_appKey, config.connectionURL, config.version, callback)
+
+def RefreshUserDataDefault(callback):
+    RefreshUserData(userconfig_appKey, config.connectionURL, config.version, callback)
 
 class Icons:
     """Container for all of the icons the application uses"""
@@ -253,7 +263,7 @@ class StatusWindow(wx.Frame):
     """
     def __init__(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Printer - Nyomtatók állapota",
-                          size=(350, 250))
+                          size=(350, 300))
         self.taskicon = TaskIcon(self)
 
         self.SetIcon(Icons.wait)
@@ -313,6 +323,12 @@ class StatusWindow(wx.Frame):
         self.statusText = wx.StaticText(panel, wx.ID_ANY, "")
         sizer.Add(self.statusText, flag=wx.ALIGN_CENTER)
 
+        # Refresh button - only visible, if there is an error...
+        sizer.Add((1, 1))
+        self.refreshButton = wx.Button(panel, ID_REFRESH, "Újrapróbál most")
+        self.refreshButton.Hide()
+        sizer.Add(self.refreshButton)
+
 
         sizer.AddGrowableCol(1)
 
@@ -341,13 +357,15 @@ class StatusWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnUser, id=ID_USER)
         self.taskicon.Bind(wx.EVT_MENU, self.OnAppKey, id=ID_APPKEY)
         self.Bind(wx.EVT_BUTTON, self.OnAppKey, id=ID_APPKEY)
+        self.Bind(wx.EVT_BUTTON, self.OnRefresh, id=ID_REFRESH)
+
         self.Bind(wx.EVT_TIMER, self.OnTimer, id=ID_TIMER)
 
         # Save original appKey (see method UserDataFirstUpdated)
         self.originalAppKey = userconfig_appKey
 
         # Get userdata from printer server
-        RefreshUserData(userconfig_appKey, config.connectionURL, config.version, self.UserDataFirstUpdated)
+        RefreshUserDataDefault(self.UserDataFirstUpdated)
 
     def OnAppKey(self, e):
         """Called when the user clicks on the "Change appkey" button/menu"""
@@ -362,9 +380,17 @@ class StatusWindow(wx.Frame):
 
         with userDataLock:
             if userData.status == True:
-                UserOnline(userconfig_appKey, config.connectionURL, config.version, self.UserDataUpdated)
+                UserOnlineDefault(self.UserDataUpdated)
             else:
-                UserOffline(userconfig_appKey, config.connectionURL, config.version, self.UserDataUpdated)
+                UserOfflineDefault(self.UserDataUpdated)
+
+    def OnRefresh(self, e):
+        """
+        Called when the refresh button is clicked
+        """
+
+        RefreshUserDataDefault(self.UserDataUpdated)
+        self.nextErrorTicks = TIMER_ERROR_INTERVAL
 
     def OnUserDataUpdate(self, e):
         """
@@ -393,6 +419,7 @@ class StatusWindow(wx.Frame):
                     # No need to repeat "I'm not here"
                 self.statusBitmap.SetBitmap(Bitmaps.ok)
                 self.statusText.SetLabel("")
+                self.refreshButton.Hide()
 
                 self.nextErrorTicks = TIMER_ERROR_INTERVAL
 
@@ -404,11 +431,17 @@ class StatusWindow(wx.Frame):
 
                 if isinstance(userData.error, errors.UserError):
                     errorMsg = userdata(userData.error)
+                    self.refreshButton.Hide()
                 else:
                     errorMsg = "Hiba az alkalmazásban! Ha a hiba sokáig fennáll,\n" + \
                                "írj a kir-dev@sch.bme.hu címre!\n" + \
                                "A hiba szövege: " + unicode (userData.error) + "\n" + \
                                "Újrapróbálkozásig hátravan: " + unicode(self.nextErrorTicks) + " ms"
+                    self.refreshButton.Show()
+                    # Only allow refreshing if the client tried to refresh at least once automatically,
+                    # to prevent abuse
+                    self.refreshButton.Enable(self.nextErrorTicks != TIMER_ERROR_INTERVAL)
+
                     self.timer.Start(self.nextErrorTicks, oneShot=True)
                     self.nextErrorTicks = min(self.nextErrorTicks * 2, TIMER_ERROR_INTERVAL_MAX)
 
@@ -438,7 +471,7 @@ class StatusWindow(wx.Frame):
         Called when the client fetches userdata for the first time.
         It loads the saved statuses from the config file
         """
-        # appKey can be overwritten by a different thread - we need to original value
+        # appKey can be overwritten by a different thread - we need the original value
         #  - that's why it needs to be copied to a local variable
         # connectionURL does not change - so it does not need to be synchronized 
         with userDataLock:
@@ -460,9 +493,9 @@ class StatusWindow(wx.Frame):
         with userDataLock:
             newStatus = not userData.status
         if newStatus == True:
-            UserOnline(userconfig_appKey, config.connectionURL, config.version, self.UserDataUpdated)
+            UserOnlineDefault(self.UserDataUpdated)
         else:
-            UserOffline(userconfig_appKey, config.connectionURL, config.version, self.UserDataUpdated)
+            UserOfflineDefault(self.UserDataUpdated)
 
         self.DisableButtons()
 
