@@ -43,6 +43,8 @@ class Connection:
         if "special" in receivedDict:
             if receivedDict["special"] == "update":
                 raise errors.UpdateError(False)
+            elif receivedDict["special"] == "appkey":
+                raise errors.UserError, "Hibás AppKey!"
             else:
                 raise Exception, "Nem támogatott speciális utatsítás"
 

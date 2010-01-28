@@ -3,3 +3,4 @@
 *.msi
 *.log
 dist
+webinterface/db.php

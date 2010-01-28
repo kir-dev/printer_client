@@ -430,7 +430,7 @@ class StatusWindow(wx.Frame):
                 self.statusBitmap.SetBitmap(Bitmaps.error)
 
                 if isinstance(userData.error, errors.UserError):
-                    errorMsg = userdata(userData.error)
+                    errorMsg = unicode(userData.error)
                     self.refreshButton.Hide()
                 else:
                     errorMsg = "Hiba az alkalmazásban! Ha a hiba sokáig fennáll,\n" + \
