@@ -59,6 +59,7 @@ sys.stderr = open(platformspec.errorfilename, "w")
 excepthook_original = sys.excepthook
 
 app = PrinterApp()
+app_closing = False
 
 def loggingexcepthook(exctype, value, traceback):
     """Closes the custom error stream if an unhandled exception occurs"""
@@ -190,6 +191,7 @@ class TaskIcon(wx.TaskBarIcon):
         return menu
 
     def OnUserDataUpdate(self, e):
+        if app_closing: return
         with userDataLock:
             global userData
             if userData.error == None:
@@ -508,6 +510,8 @@ class StatusWindow(wx.Frame):
         if e.CanVeto():
             self.Hide()
         else:
+            global app_closing
+            app_closing = True
             self.taskicon.Destroy()
             self.Destroy()
 
