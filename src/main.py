@@ -457,7 +457,7 @@ class StatusWindow(wx.Frame):
         with userDataLock:
             global userData
             if userData.error != None:
-                stderrwrite(str(userData.error))
+                stderrwrite(unicode(userData.error))
         e.Skip()
 
 
