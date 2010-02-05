@@ -436,7 +436,7 @@ class StatusWindow(wx.Frame):
                     self.refreshButton.Hide()
                 else:
                     errorMsg = "Hiba az alkalmazásban! Ha a hiba sokáig fennáll,\n" + \
-                               "írj a kir-dev@sch.bme.hu címre!\n" + \
+                               "írj nekünk a http://support.sch.bme.hu weboldalon!\n" + \
                                "A hiba szövege: " + unicode (userData.error) + "\n" + \
                                "Újrapróbálkozásig hátravan: " + unicode(self.nextErrorTicks) + " ms"
                     self.refreshButton.Show()
