@@ -1,0 +1,10 @@
+Printer Client 0.2
+
+A 0.2 verzió változásai:
+------------------------
+
+ * Az újrapróbálkozás idõ maximum 10 perc
+ * Windows leállításkor biztosan megjegyzi a beállításokat
+ * Néhány hibaüzenet a program lefagyásához/hibás mûködéséhez vezetett - javítva
+ * Frissítéskor a program adott egy Windows hibaüzenetet
+ + "Újrapóbál most" gomb bizonyos hibák esetén

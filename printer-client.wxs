@@ -7,7 +7,7 @@
     lightArgs: "<projectname>.wixobj" -out "<projectname>.msi" -ext WixUIExtension -cultures:hu-hu
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <?define PRODUCTVERSION = "0.1.2" ?>
+  <?define PRODUCTVERSION = "0.2.0" ?>
   <Product Id="*" Language="1038" Manufacturer="Kir-Dev" Name="Printer Client" Version="$(var.PRODUCTVERSION)" Codepage="1250" UpgradeCode="423B4258-71D3-4036-BB87-DF44EC9F344C">
     <Package Compressed="yes" Description="Printer Client Installer" Id="*" InstallerVersion="100" Languages="1038" />
     <UI />
@@ -21,6 +21,7 @@
             <Component Id="dist" DiskId="1" Guid="27B7E3B0-2B01-4E68-8239-AB574EFAF044">
               <File Id="w9xpopen.exe" Name="w9xpopen.exe" Source="dist\w9xpopen.exe" />
               <File Id="PrinterClient.exe" Name="PrinterClient.exe" Source="dist\PrinterClient.exe" KeyPath="yes" />
+              <File Id="CHANGES.txt" Name="CHANGES.txt" Source="dist\CHANGES.txt" />
               <Shortcut Id="startMenuExe" Name="Printer Client" Directory="ProgramMenuDir" Icon="PrinterClient.exe" IconIndex="0" Advertise="yes" WorkingDirectory="INSTALLDIR" />
               <Shortcut Id="desktopExe" Name="Printer Client" Advertise="yes" Directory="DesktopFolder" Icon="PrinterClient.exe" IconIndex="0" WorkingDirectory="INSTALLDIR" />
               <RemoveFile Id="LogFiles" Name="*.log" On="uninstall" />

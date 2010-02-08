@@ -1,2 +1,2 @@
-build_win_exe
-build_win_msi
+call build_win_exe.cmd
+call build_win_msi.cmd
