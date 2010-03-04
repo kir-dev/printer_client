@@ -38,6 +38,11 @@ if os.name == 'nt':
     configfilename = os.environ['APPDATA'] + "/Kir-Dev/PrinterClientConfig"
     errorfilename = os.environ['APPDATA'] + "/Kir-Dev/PrinterClientError.log"
 
+    def WorkaroudSetFrame(frame):
+        pass
+        
+    def WorkaroundSetCleanupFunc(func):
+        pass
 
 elif os.name == 'posix':
 
@@ -46,7 +51,43 @@ elif os.name == 'posix':
 
     def GetAutoStart():
         pass
+        
+    __homepath = os.path.expanduser("~")
 
     imgpath = "res"
-    configfilename = ".userconfig.py"
-    errorfilename = "PrinterError.log"
+    configfilename = __homepath + "/.userconfig.py"
+    errorfilename = __homepath + "/PrinterError.log"
+
+    ID_WORKAROUND_TIMER = 1001
+    
+    def noop(e):
+        pass
+
+    timer = None
+    def WorkaroundSetFrame(frame):
+        global timer
+        import wx
+        timer = wx.Timer(frame, ID_WORKAROUND_TIMER)
+        timer.Start(100)
+        frame.Bind(wx.EVT_TIMER, noop, id=ID_WORKAROUND_TIMER)
+
+    cleanupfunc = None
+    def WorkaroundSetCleanupFunc(func):
+        global cleanupfunc
+        cleanupfunc = func
+        
+    import sys
+    def DoCleanup():
+        global cleanupfunc
+        global timer
+        if timer != None:
+            timer.Stop()
+        if cleanupfunc != None:
+            cleanupfunc()
+        sys.exit()
+        
+
+    import signal
+    signal.signal(signal.SIGTERM, lambda val, stack: DoCleanup())
+    signal.signal(signal.SIGHUP, lambda val, stack: DoCleanup())
+    

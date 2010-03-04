@@ -590,6 +590,8 @@ def Cleanup():
 
 try:
     frame = StatusWindow()
+    platformspec.WorkaroundSetFrame(frame)
+    platformspec.WorkaroundSetCleanupFunc(Cleanup)
     app.SetTopWindow(frame)
     app.MainLoop()
 except Exception as ex:
