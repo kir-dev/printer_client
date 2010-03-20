@@ -38,7 +38,7 @@ if os.name == 'nt':
     configfilename = os.environ['APPDATA'] + "/Kir-Dev/PrinterClientConfig"
     errorfilename = os.environ['APPDATA'] + "/Kir-Dev/PrinterClientError.log"
 
-    def WorkaroudSetFrame(frame):
+    def WorkaroundSetFrame(frame):
         pass
         
     def WorkaroundSetCleanupFunc(func):
